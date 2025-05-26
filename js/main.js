@@ -34,16 +34,16 @@ const WALLS_GAP = 400;
 const WALLS_WIDTH = 200;
 
 // IA
-const NBR_BIRDS = 1000;
+const NBR_BIRDS = 4000;
 const KEEP_COUNT = 20;
-const REUSE_TIME = 30;
+const REUSE_TIME = 20;
 
 //#endregion
 
 //#region Classes
 
 class bird {
-    nn = new NeuralNetwork([1, 5, 5, 5, 1]);
+    nn = new NeuralNetwork([1, 1, 1]);
     x = 0;
     y = 0;
     yVelocity = 0;
@@ -66,6 +66,9 @@ for (let i = 1; i < NBR_WALLS; i++) {
     spaces.push([spaces[i - 1][0] + WALLS_GAP, Math.floor(Math.random() * (GROUND - SPACES_HEIGHT - MIN_WALL_HEIGHT * 2) + MIN_WALL_HEIGHT)]);
 }
 
+// IA
+let epoch = 0;
+
 //#endregion
 
 // Game loop
@@ -81,7 +84,7 @@ setInterval(() => {
             }
 
             // Gravity
-            if (!(player.nn.out([spaces[nextWallIndex][1] - player.y]) % 2)) {
+            if (!Math.round(player.nn.out([spaces[nextWallIndex][1] - player.y]) % 2)) {
                 player.yVelocity += GRAVITY_FORCE;
             } else {
                 player.yVelocity = JUMP_FORCE;
@@ -116,13 +119,15 @@ setInterval(() => {
         }
     }
 
+    // Sort the player
+    players.sort((a, b) => b.x - a.x);
+
     // End the epoch
     if (deadCount === players.length) {
-        // Sort the player
-        players.sort((a, b) => b.x - a.x);
+        epoch++;
 
         // Keep the bests
-        players.splice(KEEP_COUNT - 1, deadCount - KEEP_COUNT + 1);
+        players.splice(KEEP_COUNT, deadCount - KEEP_COUNT);
 
         // Reset the players
         for (let player of players) {
@@ -132,20 +137,23 @@ setInterval(() => {
         }
 
         // Copy and mutate them
-        let playersBest = structuredClone(players);
+        let playersBest = [];
         for (let i = 0; i < REUSE_TIME; i++) {
-            playersBest.concat(structuredClone(playersBest));
+            for (let player of players) {
+                playersBest.push(new bird());
+                playersBest[playersBest.length - 1].nn = player.nn.clone();
+            }
         }
 
         for (let player of playersBest) {
-            player.nn.mutate(-0.1, 0.1);
+            player.nn.mutate(0.1);
         }
 
         // Create the final array
         players.concat(playersBest);
 
         // Add the last players
-        for (let i = players.length - 1; i < NBR_BIRDS; i++) {
+        while (players.length < NBR_BIRDS) {
             players.push(new bird());
         }
 
@@ -169,7 +177,7 @@ setInterval(() => {
     // Draw the player
     CTX.fillStyle = 'red';
     for (let player of players) {
-        CTX.fillRect(CAMERA_X, player.y, PLAYER_SIZE, PLAYER_SIZE);
+        CTX.fillRect(player.x - players[0].x + CAMERA_X, player.y, PLAYER_SIZE, PLAYER_SIZE);
     }
 
     // Draw the ground

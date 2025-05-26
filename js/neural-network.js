@@ -96,28 +96,39 @@ class NeuralNetwork {
 
     /**
      * Mutate the neural network.
-     * @param min Minimum bound of the modifier.
-     * @param max Maximum  bound of the modifier.
+     * @param range Range of the mutation.
      */
-    mutate(min, max) {
+    mutate(range) {
         for (let layer of this.neurons) {
             for (let neuron of layer) {
                 for (let i = 0; i < neuron.weights.length; i++) {
-                    neuron.weights[i] += rand(min, max);
+                    neuron.weights[i] += Math.random() * range * 2 - range;
                 }
 
-                neuron.bias += rand(min, max);
+                neuron.bias += Math.random() * range * 2 - range;
             }
         }
     }
-}
 
-/**
- * Get a random number in the range in parameters.
- * @param min Minimum number of the result.
- * @param max Maximum number of the result.
- * @return {number} The random number.
- */
-function rand(min, max) {
-    return Math.random() * (max - min) + min;
+    /**
+     * Clone this neural network.
+     * @return {NeuralNetwork} The new neural network.
+     */
+    clone() {
+        const layersShape = this.neurons.map(layer => layer.length);
+        const cloneNet = new NeuralNetwork(layersShape);
+
+        for (let i = 1; i < this.neurons.length; i++) {
+            for (let j = 0; j < this.neurons[i].length; j++) {
+                const origNeuron = this.neurons[i][j];
+                const clonedNeuron = cloneNet.neurons[i][j];
+
+                clonedNeuron.weights = [...origNeuron.weights];
+                clonedNeuron.bias = origNeuron.bias;
+            }
+        }
+
+        return cloneNet;
+    }
+
 }
